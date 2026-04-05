@@ -28,12 +28,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build Debug APK
-        working-directory: artifacts/bitcoin-benchmark
+        working-directory: artifacts/bitcoin-benchmark/bitcoin-benchmark
         run: gradle assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: artifacts/bitcoin-benchmark/app/build/outputs/apk/debug/app-debug.apk
+          path: artifacts/bitcoin-benchmark/bitcoin-benchmark/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
