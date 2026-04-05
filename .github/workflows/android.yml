@@ -23,23 +23,26 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Ultimate Build
+      - name: Fix Duplicates and Build
         run: |
-          # 1. Nettoyage et reconstruction propre
+          # 1. On reconstruit le projet comme avant
           mkdir -p final_app/app/src/main
           find . -name "settings.gradle" -exec cp {} final_app/ \;
           find . -name "build.gradle" -not -path "*/app/*" -exec cp {} final_app/ \;
           find . -name "gradle.properties" -exec cp {} final_app/ \;
           find . -name "build.gradle" -path "*/app/*" -exec cp {} final_app/app/ \;
-          
-          # 2. On récupère TOUT le code source
           SRC_DIR=$(find . -type d -name "src" | head -n 1)
           cp -r "$SRC_DIR"/. final_app/app/src/ || true
           
-          # 3. Compilation forcée (on ignore les erreurs de ressources/images)
           cd final_app
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          gradle assembleDebug --no-daemon -x test -Pandroid.packageResources.ignoreErrors=true
+          
+          # 2. LA SOLUTION : On force Gradle à exclure les doublons protobuf
+          # On modifie le build.gradle de l'app à la volée pour ajouter l'exclusion
+          sed -i '/dependencies {/a \    modules { module("com.google.protobuf:protobuf-javalite") { replacedBy("com.google.protobuf:protobuf-java", "Conflicting libraries") } }' app/build.gradle
+          
+          # 3. Compilation finale
+          gradle assembleDebug --no-daemon -x test
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
