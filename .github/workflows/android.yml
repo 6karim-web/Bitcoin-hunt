@@ -18,30 +18,19 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.0
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.0'
 
-      - name: Reconstruct Project Structure
+      - name: Reconstruct and Build
         run: |
-          # 1. On crée une zone propre pour le projet
-          mkdir -p build_dir/app
+          # On nettoie et on regroupe tout à la racine
+          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          cp -r "$WRONG_PATH"/. .
           
-          # 2. On cherche et on copie les fichiers vitaux vers la racine du projet
-          find . -name "settings.gradle" -exec cp {} build_dir/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} build_dir/ \;
-          find . -name "gradle.properties" -exec cp {} build_dir/ \;
-          
-          # 3. On copie les fichiers de l'application (le cœur)
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} build_dir/app/ \;
-          
-          # On cherche et copie le AndroidManifest et le code Java/Kotlin
-          find . -name "AndroidManifest.xml" -exec cp --parents {} build_dir/ \;
-          # On déplace les sources vers le bon dossier
-          cp -r $(find . -type d -name "java" -o -name "res" -o -name "assets") build_dir/app/src/main/ 2>/dev/null || true
-          
-          # 4. On lance la compilation
-          cd build_dir
-          gradle assembleDebug --stacktrace
+          # On lance la compilation avec une version compatible
+          gradle assembleDebug --stacktrace --warning-mode all
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
