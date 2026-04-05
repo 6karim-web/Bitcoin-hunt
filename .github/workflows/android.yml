@@ -23,27 +23,17 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Clean and Fix Structure
+      - name: Fix Structure and Force Build
         run: |
-          # 1. On crée un dossier de travail propre
-          mkdir -p workspace/app/src
+          # 1. On regroupe tout proprement
+          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          cp -r "$WRONG_PATH"/. .
           
-          # 2. On récupère les fichiers de configuration (les .gradle)
-          find . -name "settings.gradle" -exec cp {} workspace/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} workspace/ \;
-          find . -name "gradle.properties" -exec cp {} workspace/ \;
+          # 2. On force l'acceptation du SDK 34 pour éviter l'erreur
+          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 3. On récupère le build.gradle de l'application
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} workspace/app/ \;
-          
-          # 4. On récupère TOUT le contenu du dossier src (le code et le design)
-          # On cherche le dossier 'main' et on le copie au bon endroit
-          SRC_MAIN=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_MAIN" workspace/app/src/
-          
-          # 5. On lance la compilation depuis le dossier propre
-          cd workspace
-          gradle assembleDebug --stacktrace
+          # 3. Compilation finale
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
