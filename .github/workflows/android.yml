@@ -3,8 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  pull_request:    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -25,17 +24,17 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK (Smart Detect)
+      - name: Build APK (Search Everywhere)
         run: |
-          # On cherche le dossier qui contient 'settings.gradle' mais qui n'est PAS dans .github
-          PROJECT_ROOT=$(find . -name "settings.gradle" -not -path "*/.github/*" -exec dirname {} + | head -n 1)
+          # On cherche le dossier qui contient 'settings.gradle' n'importe où dans le dépôt
+          PROJECT_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           
           if [ -z "$PROJECT_ROOT" ]; then
-            echo "ERREUR : Fichier settings.gradle introuvable hors du dossier .github"
+            echo "ERREUR : Fichier settings.gradle introuvable !"
             exit 1
           fi
           
-          echo "Projet détecté dans : $PROJECT_ROOT"
+          echo "Projet trouvé dans : $PROJECT_ROOT"
           cd "$PROJECT_ROOT"
           gradle assembleDebug --stacktrace
 
