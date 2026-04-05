@@ -24,27 +24,30 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Final Force Build
+      - name: Physical Cleanup and Build
         run: |
-          # 1. On nettoie et on reconstruit proprement
-          rm -rf /tmp/final_app
-          mkdir -p /tmp/final_app/app/src/main
-          find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_app/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/final_app/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_app/app/ \;
+          # 1. On crée une structure propre dans /tmp pour éviter les conflits
+          rm -rf /tmp/final_build
+          mkdir -p /tmp/final_build/app/src/main
+          
+          # 2. On récupère les fichiers vitaux (settings, builds, properties)
+          find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
+          
+          # 3. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/final_app/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
           
-          cd /tmp/final_app
+          cd /tmp/final_build
           
-          # 2. SOLUTION RADICALE : Fusionner les doublons Protobuf
-          # On ajoute un bloc packagingOptions pour dire à Android de prendre le premier fichier en cas de conflit
-          echo "android.packagingOptions.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
-          echo "android.packagingOptions.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
-          echo "android.packagingOptions.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
+          # 4. LA SOLUTION RADICALE : Supprimer les fichiers de métadonnées et doublons
+          # On efface les fichiers .proto et les infos de dépendances qui bloquent le build
+          find . -name "*.proto" -type f -delete
+          find . -name "DEPENDENCIES" -type f -delete
           
-          # 3. Forcer le SDK 34 et compiler
+          # 5. On force le SDK 34 et on lance la compilation
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           gradle assembleDebug --no-daemon -x test -x lint
 
