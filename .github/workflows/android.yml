@@ -24,9 +24,9 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Clean Build and Fix
+      - name: Fix Duplicates and Build
         run: |
-          # 1. On nettoie et on reconstruit proprement
+          # 1. Reconstruction propre
           rm -rf /tmp/final_app
           mkdir -p /tmp/final_app/app/src/main
           find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
@@ -38,10 +38,14 @@ jobs:
           
           cd /tmp/final_app
           
-          # 2. On retire l'erreur précédente et on force le SDK 34
+          # 2. SOLUTION AU CONFLIT PROTOBUF
+          # Cette ligne force Gradle à ignorer la version 'lite' qui crée le doublon
+          echo "configurations.all { exclude group: 'com.google.protobuf', module: 'protobuf-javalite' }" >> app/build.gradle
+          
+          # 3. Forcer le SDK 34
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 3. On lance la compilation sans les options qui ont fait planter le build 60
+          # 4. Compilation
           gradle assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
