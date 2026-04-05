@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Bitcoin Benchmark</string>
+    <string name="hint_target_address">Enter target BTC address (optional)</string>
+    <string name="btn_start">▶ START BENCHMARK</string>
+    <string name="btn_stop">■ STOP</string>
+    <string name="label_kps">Keys/sec: 0</string>
+    <string name="label_total">Total: 0</string>
+    <string name="console_ready">[ BITCOIN ECKEY BENCHMARK ]\n[ Ready. Press START to begin. ]\n</string>
+</resources>
