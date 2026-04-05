@@ -23,18 +23,18 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Reconstruct Project and Build
+      - name: Locate and Build APK
         run: |
-          # 1. On trouve le dossier qui contient 'app' et on le ramène à la racine
-          APP_PARENT=$(find . -maxdepth 10 -type d -name "app" -exec dirname {} + | head -n 1)
-          echo "Dossier parent trouvé : $APP_PARENT"
-          cp -r "$APP_PARENT"/. .
+          # 1. On trouve le dossier qui contient le VRAI projet (celui avec settings.gradle)
+          ROOT_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          echo "Racine du projet trouvée dans : $ROOT_DIR"
           
-          # 2. On force la reconnaissance du SDK 34
+          # 2. On entre dans ce dossier et on force la config du SDK
+          cd "$ROOT_DIR"
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 3. On lance la compilation
-          gradle :app:assembleDebug --stacktrace --no-daemon
+          # 3. On lance la compilation de TOUS les projets trouvés
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
