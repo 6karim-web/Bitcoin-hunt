@@ -23,17 +23,18 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Fix Structure and Force Build
+      - name: Reconstruct Project and Build
         run: |
-          # 1. On regroupe tout proprement
-          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          cp -r "$WRONG_PATH"/. .
+          # 1. On trouve le dossier qui contient 'app' et on le ramène à la racine
+          APP_PARENT=$(find . -maxdepth 10 -type d -name "app" -exec dirname {} + | head -n 1)
+          echo "Dossier parent trouvé : $APP_PARENT"
+          cp -r "$APP_PARENT"/. .
           
-          # 2. On force l'acceptation du SDK 34 pour éviter l'erreur
+          # 2. On force la reconnaissance du SDK 34
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 3. Compilation finale
-          gradle assembleDebug --stacktrace --no-daemon
+          # 3. On lance la compilation
+          gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
