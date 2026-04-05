@@ -3,7 +3,8 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  pull_request:    branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -26,7 +27,7 @@ jobs:
 
       - name: Build APK (Search Everywhere)
         run: |
-          # On cherche le dossier qui contient 'settings.gradle' n'importe où dans le dépôt
+          # On cherche le dossier qui contient 'settings.gradle' n'importe où
           PROJECT_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           
           if [ -z "$PROJECT_ROOT" ]; then
