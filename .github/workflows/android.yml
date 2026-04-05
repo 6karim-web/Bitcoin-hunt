@@ -24,31 +24,24 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Physical Cleanup and Build
+      - name: Auto-Detect and Build
         run: |
-          # 1. On crée une structure propre dans /tmp pour éviter les conflits
-          rm -rf /tmp/final_build
-          mkdir -p /tmp/final_build/app/src/main
+          # 1. On cherche le VRAI dossier qui contient 'settings.gradle'
+          PROJ_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          echo "Projet trouvé dans : $PROJ_ROOT"
           
-          # 2. On récupère les fichiers vitaux (settings, builds, properties)
-          find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
+          # 2. On crée un dossier de travail propre à la racine
+          mkdir -p final_app/app
           
-          # 3. On récupère le code source
-          SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
+          # 3. On aspire les fichiers vitaux depuis l'endroit trouvé
+          cp -r "$PROJ_ROOT"/* final_app/ 2>/dev/null || true
           
-          cd /tmp/final_build
-          
-          # 4. LA SOLUTION RADICALE : Supprimer les fichiers de métadonnées et doublons
-          # On efface les fichiers .proto et les infos de dépendances qui bloquent le build
+          # 4. On entre dans le dossier et on nettoie les doublons
+          cd final_app
           find . -name "*.proto" -type f -delete
-          find . -name "DEPENDENCIES" -type f -delete
-          
-          # 5. On force le SDK 34 et on lance la compilation
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+          
+          # 5. On lance la compilation
           gradle assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
