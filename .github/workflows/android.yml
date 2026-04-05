@@ -23,29 +23,29 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Surgical Fix and Build
+      - name: Final Build Attempt
         run: |
-          # 1. On crée un dossier temporaire isolé
-          mkdir -p /tmp/app_build/app/src/main
+          # 1. On isole le projet dans un dossier propre
+          mkdir -p /tmp/clean_project/app/src/main
+          find . -name "settings.gradle" -exec cp {} /tmp/clean_project/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/clean_project/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/clean_project/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/clean_project/app/ \;
           
-          # 2. On aspire uniquement ce qui compte vraiment
-          find . -name "settings.gradle" -exec cp {} /tmp/app_build/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/app_build/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/app_build/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/app_build/app/ \;
-          
-          # On cherche le dossier src le plus complet
+          # 2. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/app_build/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/clean_project/app/src/main/ || true
           
-          # 3. On entre dans ce dossier propre et on patche les erreurs
-          cd /tmp/app_build
+          cd /tmp/clean_project
+          
+          # 3. SOLUTION ANTI-DOUBLON : On configure Gradle pour fusionner les fichiers en conflit
+          # On ajoute un bloc android { packagingOptions { ... } } à la fin du fichier
+          echo "android.packagingOptions.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
+          echo "android.packagingOptions.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
+          echo "android.packagingOptions.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
+          
+          # 4. Compilation avec SDK 34 forcé
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          
-          # Patch anti-doublon (Protobuf)
-          sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.proto" \n        pickFirst "google/protobuf/**" \n        exclude "META-INF/DEPENDENCIES" \n    }' app/build.gradle
-          
-          # 4. On lance l'APK
           gradle assembleDebug --no-daemon -x test
 
       - name: Upload APK artifact
