@@ -23,29 +23,29 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Final Cleanup and Build
+      - name: Atomic Cleanup and Build
         run: |
-          # 1. On crée une structure propre dans /tmp
+          # 1. Création d'un dossier de build totalement isolé
           rm -rf /tmp/final_build
           mkdir -p /tmp/final_build/app/src/main
           
-          # 2. On récupère les fichiers vitaux
+          # 2. Copie des fichiers vitaux
           find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
           find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
           find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
           find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
           
-          # 3. On récupère le code source
+          # 3. Récupération du code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
           cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
           
           cd /tmp/final_build
           
-          # 4. LA SOLUTION MIRACLE : On supprime les fichiers qui font doublon
-          # On cherche et on efface tous les fichiers .proto qui bloquent la compilation
+          # 4. SUPPRESSION PHYSIQUE DES DOUBLONS (La solution miracle)
+          # On cherche et on efface tous les fichiers .proto qui font planter le build
           find . -name "*.proto" -type f -delete
           
-          # 5. On force la config SDK et on lance l'APK
+          # 5. Configuration finale et COMPILATION
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           gradle assembleDebug --no-daemon -x test -x lint
 
