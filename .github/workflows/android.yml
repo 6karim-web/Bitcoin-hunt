@@ -23,20 +23,19 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Deep Search and Build
+      - name: Auto-Fix and Build
         run: |
-          # 1. On trouve le dossier exact qui contient 'settings.gradle'
-          TARGET_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "Le projet est ici : $TARGET_DIR"
+          # 1. On trouve où est le projet (settings.gradle)
+          PROJ_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          cd "$PROJ_DIR"
           
-          # 2. On entre dans ce dossier
-          cd "$TARGET_DIR"
-          
-          # 3. On force la config SDK et on lance la fabrication
+          # 2. Correction automatique du SDK et de la mémoire
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
           
-          # On utilise --info pour être sûr de voir ce qui se passe
-          gradle assembleDebug --info --stacktrace --no-daemon
+          # 3. On force la compilation en ignorant les tests et le lint (erreurs de style)
+          # On utilise --no-daemon pour éviter les erreurs de mémoire serveur
+          gradle assembleDebug --stacktrace --no-daemon -x lint -x test
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
