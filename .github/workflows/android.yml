@@ -23,15 +23,13 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Force Build and Ignore Errors
+      - name: Force Build (Ignore folders)
         run: |
-          # 1. On remet les fichiers à la racine
-          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          cp -r "$WRONG_PATH"/. .
-          
-          # 2. On lance la compilation en ignorant les tests et les vérifications de style
-          # On ajoute des options pour stabiliser Gradle sur GitHub
-          gradle assembleDebug -x lint -x test --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
+          # On cherche le dossier qui contient settings.gradle et on se met dedans
+          PROJ_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          cd "$PROJ_DIR"
+          # On lance le build en ignorant les erreurs de lint et de check
+          gradle assembleDebug -x lint -x test --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
