@@ -18,15 +18,15 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.0 (No Cache)
+      - name: Setup Gradle 8.0
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.0'
-          cache-disabled: true # On désactive le cache pour éviter l'erreur serveur GitHub
+          cache-disabled: true
 
-      - name: Ultimate Build
+      - name: Reconstruct and Force Wrapper
         run: |
-          # 1. On crée une structure de build 100% propre
+          # 1. On crée une structure de build 100% isolée
           rm -rf /tmp/final_build
           mkdir -p /tmp/final_build/app/src/main
           
@@ -42,13 +42,16 @@ jobs:
           
           cd /tmp/final_build
           
-          # 4. CONFIGURATION DE FORCE (SDK 34 + Fusion des doublons)
+          # 4. GÉNÉRATION DU WRAPPER (La solution pour l'erreur de 54s)
+          gradle wrapper --gradle-version 8.0
+          chmod +x gradlew
+          
+          # 5. CONFIGURATION DE FORCE (SDK 34 + Fusion des doublons)
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 5. COMPILATION : On force Gradle à ignorer les doublons Protobuf et les erreurs de ressources
-          gradle assembleDebug --no-daemon -x test -x lint \
+          # 6. COMPILATION : On utilise le gradlew qu'on vient de créer
+          ./gradlew assembleDebug --no-daemon -x test -x lint \
             -Pandroid.packagingOptions.resources.pickFirsts="**/*.proto,google/protobuf/**" \
-            -Pandroid.packagingOptions.resources.excludes="META-INF/DEPENDENCIES" \
             -Pandroid.packageResources.ignoreErrors=true
 
       - name: Upload APK artifact
