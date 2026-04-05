@@ -25,16 +25,19 @@ jobs:
 
       - name: Reconstruct and Build
         run: |
-          # On nettoie et on regroupe tout à la racine
+          # 1. On remet les fichiers à la racine
           WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           cp -r "$WRONG_PATH"/. .
           
-          # On lance la compilation avec une version compatible
-          gradle assembleDebug --stacktrace --warning-mode all
+          # 2. Nettoyage forcé des caches
+          gradle clean
+          
+          # 3. Compilation en ignorant les erreurs de style
+          gradle assembleDebug --stacktrace -Dorg.gradle.project.android.viewBinding.enabled=false
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: "**/build/outputs/apk/debug/app-debug.apk"
+          path: "**/build/outputs/apk/debug/*.apk"
           retention-days: 7
