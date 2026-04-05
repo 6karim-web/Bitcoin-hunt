@@ -23,31 +23,31 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Atomic Cleanup and Build
+      - name: Force Merge Build
         run: |
-          # 1. Création d'un dossier de build totalement isolé
-          rm -rf /tmp/final_build
-          mkdir -p /tmp/final_build/app/src/main
+          # 1. On crée un environnement de build isolé
+          rm -rf /tmp/build_final
+          mkdir -p /tmp/build_final/app/src/main
           
-          # 2. Copie des fichiers vitaux
-          find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
+          # 2. On récupère les fichiers vitaux
+          find . -name "settings.gradle" -exec cp {} /tmp/build_final/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/build_final/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/build_final/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/build_final/app/ \;
           
-          # 3. Récupération du code source
+          # 3. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/build_final/app/src/main/ || true
           
-          cd /tmp/final_build
+          cd /tmp/build_final
           
-          # 4. SUPPRESSION PHYSIQUE DES DOUBLONS (La solution miracle)
-          # On cherche et on efface tous les fichiers .proto qui font planter le build
-          find . -name "*.proto" -type f -delete
-          
-          # 5. Configuration finale et COMPILATION
+          # 4. CONFIGURATION DE FORCE (SDK 34 + Fusion des doublons)
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          gradle assembleDebug --no-daemon -x test -x lint
+          
+          # 5. COMPILATION FINALE : On dit à Gradle de fusionner les doublons Protobuf
+          gradle assembleDebug --no-daemon -x test -x lint \
+            -Pandroid.packagingOptions.resources.pickFirsts="**/*.proto,google/protobuf/**" \
+            -Pandroid.packagingOptions.resources.excludes="META-INF/DEPENDENCIES"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
