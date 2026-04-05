@@ -23,21 +23,24 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Nuclear Fix and Build
+      - name: Flatten Project and Build
         run: |
-          # 1. On identifie le VRAI dossier du projet (celui qui a le code source)
-          # On cherche le dossier 'app' le plus profond
-          REAL_APP_DIR=$(find . -type d -name "app" | head -n 1)
-          REAL_PROJECT_ROOT=$(dirname "$REAL_APP_DIR")
-          echo "Projet détecté dans : $REAL_PROJECT_ROOT"
+          # 1. On crée un dossier de travail propre à la racine
+          mkdir -p final_app/app
           
-          # 2. On se déplace dedans pour que Gradle ne soit plus perdu
-          cd "$REAL_PROJECT_ROOT"
+          # 2. On aspire TOUS les fichiers .gradle, .properties et .xml peu importe où ils sont
+          find . -name "settings.gradle" -exec cp {} final_app/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} final_app/ \;
+          find . -name "gradle.properties" -exec cp {} final_app/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} final_app/app/ \;
           
-          # 3. On force les réglages de compatibilité
+          # 3. On aspire le code source (src) et on le met au bon endroit
+          SRC_DIR=$(find . -type d -name "src" | head -n 1)
+          cp -r "$SRC_DIR" final_app/app/
+          
+          # 4. On lance la compilation depuis le dossier propre
+          cd final_app
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          
-          # 4. On lance la compilation
           gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK artifact
