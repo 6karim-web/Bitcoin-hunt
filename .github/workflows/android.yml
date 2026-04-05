@@ -23,19 +23,20 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Fix Structure and Build
+      - name: Deep Search and Build
         run: |
-          # 1. On cherche où est caché le fichier settings.gradle
-          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "Projet trouvé dans : $WRONG_PATH"
+          # 1. On trouve le dossier exact qui contient 'settings.gradle'
+          TARGET_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          echo "Le projet est ici : $TARGET_DIR"
           
-          # 2. On déplace TOUT le contenu de ce dossier vers la racine du projet
-          # C'est l'étape qui répare ton erreur de dossier
-          cp -r "$WRONG_PATH"/. .
+          # 2. On entre dans ce dossier
+          cd "$TARGET_DIR"
           
-          # 3. On force la config du SDK et on lance la compilation
+          # 3. On force la config SDK et on lance la fabrication
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          gradle assembleDebug --stacktrace --no-daemon
+          
+          # On utilise --info pour être sûr de voir ce qui se passe
+          gradle assembleDebug --info --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
