@@ -23,17 +23,17 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Reconstruct and Build
+      - name: Force Clean Build
         run: |
-          # 1. On remet les fichiers à la racine
+          # 1. On trouve le dossier où sont tes fichiers et on les remet à la racine
           WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           cp -r "$WRONG_PATH"/. .
           
-          # 2. Nettoyage forcé des caches
-          gradle clean
+          # 2. On supprime les fichiers Gradle potentiellement corrompus
+          rm -rf .gradle
           
-          # 3. Compilation en ignorant les erreurs de style
-          gradle assembleDebug --stacktrace -Dorg.gradle.project.android.viewBinding.enabled=false
+          # 3. On lance la compilation en mode "Info" pour voir l'erreur exacte si ça rate
+          gradle assembleDebug --info --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
