@@ -23,15 +23,15 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Force Build
+      - name: Force Build and Ignore Errors
         run: |
-          # On remet les fichiers à la racine
+          # 1. On remet les fichiers à la racine
           WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           cp -r "$WRONG_PATH"/. .
           
-          # On lance la compilation en ignorant les tests et les erreurs de style
-          # On ajoute --no-daemon pour éviter les blocages de mémoire
-          gradle assembleDebug -x lint -x test --no-daemon --stacktrace
+          # 2. On lance la compilation en ignorant les tests et les vérifications de style
+          # On ajoute des options pour stabiliser Gradle sur GitHub
+          gradle assembleDebug -x lint -x test --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxMetaspaceSize=512m"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
