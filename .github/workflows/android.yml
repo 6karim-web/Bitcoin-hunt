@@ -24,9 +24,9 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Ultimate Resource Fix and Build
+      - name: Clean Build and Fix
         run: |
-          # 1. On prépare l'environnement propre
+          # 1. On nettoie et on reconstruit proprement
           rm -rf /tmp/final_app
           mkdir -p /tmp/final_app/app/src/main
           find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
@@ -38,12 +38,10 @@ jobs:
           
           cd /tmp/final_app
           
-          # 2. On force les réglages pour ignorer les erreurs de ressources (le bug actuel)
+          # 2. On retire l'erreur précédente et on force le SDK 34
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          echo "android.packageResources.ignoreErrors=true" >> gradle.properties
-          echo "android.aapt2FromMavenOverride=true" >> gradle.properties
           
-          # 3. On nettoie et on lance la compilation finale
+          # 3. On lance la compilation sans les options qui ont fait planter le build 60
           gradle assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
