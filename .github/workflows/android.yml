@@ -24,35 +24,31 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Reconstruct and Force Wrapper
+      - name: Kill Conflict and Build
         run: |
-          # 1. On crée une structure de build 100% isolée
+          # 1. On prépare l'environnement propre comme avant
           rm -rf /tmp/final_build
           mkdir -p /tmp/final_build/app/src/main
-          
-          # 2. On aspire les fichiers vitaux
           find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
           find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
           find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
           find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
-          
-          # 3. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
           cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
           
           cd /tmp/final_build
           
-          # 4. GÉNÉRATION DU WRAPPER (La solution pour l'erreur de 54s)
+          # 2. LA SOLUTION AU CONFLIT : On force l'exclusion de javalite dans build.gradle
+          # On cherche la ligne 'dependencies {' et on injecte l'exclusion juste après
+          sed -i '/dependencies {/a \    configurations.all { exclude group: "com.google.protobuf", module: "protobuf-javalite" }' app/build.gradle
+          
+          # 3. On crée le wrapper pour la stabilité
           gradle wrapper --gradle-version 8.0
           chmod +x gradlew
           
-          # 5. CONFIGURATION DE FORCE (SDK 34 + Fusion des doublons)
+          # 4. On force le SDK et on compile
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          
-          # 6. COMPILATION : On utilise le gradlew qu'on vient de créer
-          ./gradlew assembleDebug --no-daemon -x test -x lint \
-            -Pandroid.packagingOptions.resources.pickFirsts="**/*.proto,google/protobuf/**" \
-            -Pandroid.packageResources.ignoreErrors=true
+          ./gradlew assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
