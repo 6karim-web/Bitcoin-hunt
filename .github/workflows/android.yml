@@ -23,29 +23,25 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Atomic Cleanup and Build
+      - name: Force Merge and Build
         run: |
-          # 1. Création d'un dossier de build totalement isolé
-          rm -rf /tmp/final_build
-          mkdir -p /tmp/final_build/app/src/main
-          
-          # 2. Copie des fichiers vitaux
-          find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
-          
-          # 3. Récupération du code source
+          # 1. Nettoyage et reconstruction de la structure
+          rm -rf /tmp/final_app
+          mkdir -p /tmp/final_app/app/src/main
+          find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_app/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/final_app/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_app/app/ \;
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/final_app/app/src/main/ || true
           
-          cd /tmp/final_build
+          cd /tmp/final_app
           
-          # 4. SUPPRESSION PHYSIQUE DES DOUBLONS (La solution miracle)
-          # On cherche et on supprime tous les fichiers .proto qui font planter le build
-          find . -name "*.proto" -type f -delete
+          # 2. PATCH CRUCIAL : On injecte les options de fusion dans build.gradle
+          # Cela dit à Android d'ignorer les doublons Protobuf
+          sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.proto" \n        pickFirst "google/protobuf/**" \n        exclude "META-INF/DEPENDENCIES" \n    }' app/build.gradle
           
-          # 5. Configuration finale et COMPILATION
+          # 3. Configuration finale et compilation
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           gradle assembleDebug --no-daemon -x test -x lint
 
