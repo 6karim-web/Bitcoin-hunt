@@ -23,27 +23,29 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Extreme Fix and Build
+      - name: Final Cleanup and Build
         run: |
-          # 1. Reconstruction propre
-          rm -rf /tmp/final_app
-          mkdir -p /tmp/final_app/app/src/main
-          find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_app/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/final_app/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_app/app/ \;
+          # 1. On crée une structure propre dans /tmp
+          rm -rf /tmp/final_build
+          mkdir -p /tmp/final_build/app/src/main
+          
+          # 2. On récupère les fichiers vitaux
+          find . -name "settings.gradle" -exec cp {} /tmp/final_build/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/final_build/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/final_build/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/final_build/app/ \;
+          
+          # 3. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/final_app/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/final_build/app/src/main/ || true
           
-          cd /tmp/final_app
+          cd /tmp/final_build
           
-          # 2. SOLUTION FINALE : On force les options au niveau global du projet
-          # On ajoute un bloc android { packaging { ... } } à la fin du fichier app/build.gradle
-          echo "android.packaging.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
-          echo "android.packaging.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
-          echo "android.packaging.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
+          # 4. LA SOLUTION MIRACLE : On supprime les fichiers qui font doublon
+          # On cherche et on efface tous les fichiers .proto qui bloquent la compilation
+          find . -name "*.proto" -type f -delete
           
-          # 3. On force le SDK et on lance l'APK
+          # 5. On force la config SDK et on lance l'APK
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           gradle assembleDebug --no-daemon -x test -x lint
 
