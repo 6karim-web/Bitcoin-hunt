@@ -25,10 +25,13 @@ jobs:
 
       - name: Force Build
         run: |
+          # On remet les fichiers à la racine
           WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           cp -r "$WRONG_PATH"/. .
-          # On lance le build en ignorant explicitement les erreurs de lint et de check
-          gradle assembleDebug -x lint -x test --stacktrace
+          
+          # On lance la compilation en ignorant les tests et les erreurs de style
+          # On ajoute --no-daemon pour éviter les blocages de mémoire
+          gradle assembleDebug -x lint -x test --no-daemon --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
