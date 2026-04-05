@@ -18,18 +18,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Accept Android SDK Licenses
+        run: yes | sdkmanager --licenses || true
+
       - name: Setup Gradle 8.0
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.0'
 
-      - name: Force Build with Debug Info
+      - name: Reconstruct and Build
         run: |
-          # On se place dans le bon dossier
-          PROJ_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          cd "$PROJ_DIR"
-          # On lance le build en mode DEBUG pour voir l'erreur exacte
-          gradle assembleDebug --stacktrace --info
+          # 1. On remet les fichiers à la racine proprement
+          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          cp -r "$WRONG_PATH"/. .
+          
+          # 2. On affiche les fichiers pour vérifier (optionnel)
+          ls -R
+          
+          # 3. On lance la compilation en ignorant les erreurs de style
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
