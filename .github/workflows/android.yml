@@ -24,9 +24,9 @@ jobs:
           gradle-version: '8.0'
           cache-disabled: true
 
-      - name: Fix Duplicates and Build
+      - name: Final Force Build
         run: |
-          # 1. Reconstruction propre
+          # 1. On nettoie et on reconstruit proprement
           rm -rf /tmp/final_app
           mkdir -p /tmp/final_app/app/src/main
           find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
@@ -38,14 +38,14 @@ jobs:
           
           cd /tmp/final_app
           
-          # 2. SOLUTION AU CONFLIT PROTOBUF
-          # Cette ligne force Gradle à ignorer la version 'lite' qui crée le doublon
-          echo "configurations.all { exclude group: 'com.google.protobuf', module: 'protobuf-javalite' }" >> app/build.gradle
+          # 2. SOLUTION RADICALE : Fusionner les doublons Protobuf
+          # On ajoute un bloc packagingOptions pour dire à Android de prendre le premier fichier en cas de conflit
+          echo "android.packagingOptions.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
+          echo "android.packagingOptions.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
+          echo "android.packagingOptions.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
           
-          # 3. Forcer le SDK 34
+          # 3. Forcer le SDK 34 et compiler
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          
-          # 4. Compilation
           gradle assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
