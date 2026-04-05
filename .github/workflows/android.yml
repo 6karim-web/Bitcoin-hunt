@@ -23,9 +23,9 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Force Merge and Build
+      - name: Extreme Fix and Build
         run: |
-          # 1. Nettoyage et reconstruction de la structure
+          # 1. Reconstruction propre
           rm -rf /tmp/final_app
           mkdir -p /tmp/final_app/app/src/main
           find . -name "settings.gradle" -exec cp {} /tmp/final_app/ \;
@@ -37,11 +37,13 @@ jobs:
           
           cd /tmp/final_app
           
-          # 2. PATCH CRUCIAL : On injecte les options de fusion dans build.gradle
-          # Cela dit à Android d'ignorer les doublons Protobuf
-          sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.proto" \n        pickFirst "google/protobuf/**" \n        exclude "META-INF/DEPENDENCIES" \n    }' app/build.gradle
+          # 2. SOLUTION FINALE : On force les options au niveau global du projet
+          # On ajoute un bloc android { packaging { ... } } à la fin du fichier app/build.gradle
+          echo "android.packaging.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
+          echo "android.packaging.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
+          echo "android.packaging.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
           
-          # 3. Configuration finale et compilation
+          # 3. On force le SDK et on lance l'APK
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           gradle assembleDebug --no-daemon -x test -x lint
 
