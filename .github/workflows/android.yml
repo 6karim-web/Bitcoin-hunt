@@ -23,18 +23,29 @@ jobs:
         with:
           gradle-version: '7.6'
 
-      - name: Auto-Fix and Build
+      - name: Reconstruct Project and Build
         run: |
-          # 1. Trouver le projet
-          PROJ_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          cd "$PROJ_DIR"
+          # 1. On crée une structure propre
+          mkdir -p final_project/app/src/main
           
-          # 2. Configurer les ressources
+          # 2. On ramasse les fichiers de config
+          find . -name "settings.gradle" -exec cp {} final_project/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} final_project/ \;
+          find . -name "gradle.properties" -exec cp {} final_project/ \;
+          
+          # 3. On ramasse les fichiers de l'app
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} final_project/app/ \;
+          find . -name "AndroidManifest.xml" -exec cp {} final_project/app/src/main/ \;
+          
+          # 4. On ramasse le code et les ressources
+          cp -r $(find . -type d -name "java") final_project/app/src/main/ 2>/dev/null || true
+          cp -r $(find . -type d -name "res") final_project/app/src/main/ 2>/dev/null || true
+          cp -r $(find . -type d -name "assets") final_project/app/src/main/ 2>/dev/null || true
+          
+          # 5. On lance le build
+          cd final_project
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=256m" >> gradle.properties
-          
-          # 3. Build forcé
-          gradle assembleDebug --stacktrace --no-daemon -x lint -x test
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
