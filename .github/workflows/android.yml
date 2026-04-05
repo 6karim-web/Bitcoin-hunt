@@ -12,29 +12,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 11
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '11'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.0
+      - name: Setup Gradle 7.6
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.0'
+          gradle-version: '7.6'
 
       - name: Auto-Fix and Build
         run: |
-          # 1. On trouve où est le projet (settings.gradle)
+          # 1. Trouver le projet
           PROJ_DIR=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
           cd "$PROJ_DIR"
           
-          # 2. Correction automatique du SDK et de la mémoire
+          # 2. Configurer les ressources
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=256m" >> gradle.properties
           
-          # 3. On force la compilation en ignorant les tests et le lint (erreurs de style)
-          # On utilise --no-daemon pour éviter les erreurs de mémoire serveur
+          # 3. Build forcé
           gradle assembleDebug --stacktrace --no-daemon -x lint -x test
 
       - name: Upload APK artifact
