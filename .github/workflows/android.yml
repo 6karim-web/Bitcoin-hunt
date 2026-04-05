@@ -25,12 +25,18 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK (Auto-detect directory)
+      - name: Build APK (Smart Detect)
         run: |
-          # Cette commande cherche le fichier build.gradle et entre dans son dossier
-          PROJECT_DIR=$(find . -name "build.gradle" -not -path "*/app/*" -exec dirname {} + | head -n 1)
-          echo "Projet trouvé dans : $PROJECT_DIR"
-          cd "$PROJECT_DIR"
+          # On cherche le dossier qui contient 'settings.gradle' mais qui n'est PAS dans .github
+          PROJECT_ROOT=$(find . -name "settings.gradle" -not -path "*/.github/*" -exec dirname {} + | head -n 1)
+          
+          if [ -z "$PROJECT_ROOT" ]; then
+            echo "ERREUR : Fichier settings.gradle introuvable hors du dossier .github"
+            exit 1
+          fi
+          
+          echo "Projet détecté dans : $PROJECT_ROOT"
+          cd "$PROJECT_ROOT"
           gradle assembleDebug --stacktrace
 
       - name: Upload APK artifact
