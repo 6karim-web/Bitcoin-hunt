@@ -3,15 +3,11 @@ name: Build Android APK
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Debug APK
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,16 +21,26 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Fix Directory Structure and Build
+      - name: Reconstruct Project Structure
         run: |
-          # 1. On trouve où est caché le fichier settings.gradle
-          WRONG_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "Projet trouvé dans : $WRONG_PATH"
+          # 1. On crée une zone propre pour le projet
+          mkdir -p build_dir/app
           
-          # 2. On déplace TOUT le contenu de ce dossier vers la racine du projet
-          cp -r "$WRONG_PATH"/. .
+          # 2. On cherche et on copie les fichiers vitaux vers la racine du projet
+          find . -name "settings.gradle" -exec cp {} build_dir/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} build_dir/ \;
+          find . -name "gradle.properties" -exec cp {} build_dir/ \;
           
-          # 3. On lance la compilation depuis la racine propre
+          # 3. On copie les fichiers de l'application (le cœur)
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} build_dir/app/ \;
+          
+          # On cherche et copie le AndroidManifest et le code Java/Kotlin
+          find . -name "AndroidManifest.xml" -exec cp --parents {} build_dir/ \;
+          # On déplace les sources vers le bon dossier
+          cp -r $(find . -type d -name "java" -o -name "res" -o -name "assets") build_dir/app/src/main/ 2>/dev/null || true
+          
+          # 4. On lance la compilation
+          cd build_dir
           gradle assembleDebug --stacktrace
 
       - name: Upload APK artifact
