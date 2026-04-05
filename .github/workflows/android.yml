@@ -23,30 +23,31 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Final Build Attempt
+      - name: Ultimate Cleanup and Build
         run: |
-          # 1. On isole le projet dans un dossier propre
-          mkdir -p /tmp/clean_project/app/src/main
-          find . -name "settings.gradle" -exec cp {} /tmp/clean_project/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/clean_project/ \;
-          find . -name "gradle.properties" -exec cp {} /tmp/clean_project/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/clean_project/app/ \;
+          # 1. Création d'un environnement 100% propre
+          rm -rf /tmp/build_zone
+          mkdir -p /tmp/build_zone/app/src/main
           
-          # 2. On récupère le code source
+          # 2. On récupère les fichiers vitaux
+          find . -name "settings.gradle" -exec cp {} /tmp/build_zone/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/build_zone/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/build_zone/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/build_zone/app/ \;
+          
+          # 3. On récupère le code source
           SRC_DIR=$(find . -type d -name "main" | head -n 1)
-          cp -r "$SRC_DIR"/. /tmp/clean_project/app/src/main/ || true
+          cp -r "$SRC_DIR"/. /tmp/build_zone/app/src/main/ || true
           
-          cd /tmp/clean_project
+          cd /tmp/build_zone
           
-          # 3. SOLUTION ANTI-DOUBLON : On configure Gradle pour fusionner les fichiers en conflit
-          # On ajoute un bloc android { packagingOptions { ... } } à la fin du fichier
-          echo "android.packagingOptions.resources.pickFirsts.add('**/*.proto')" >> gradle.properties
-          echo "android.packagingOptions.resources.pickFirsts.add('google/protobuf/**')" >> gradle.properties
-          echo "android.packagingOptions.resources.excludes.add('META-INF/DEPENDENCIES')" >> gradle.properties
-          
-          # 4. Compilation avec SDK 34 forcé
+          # 4. On force les réglages de compatibilité
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          gradle assembleDebug --no-daemon -x test
+          
+          # 5. COMPILATION FINALE : On ignore les conflits de fichiers (Protobuf)
+          gradle assembleDebug --no-daemon -x test \
+            -Pandroid.extractNativeLibs=false \
+            -Pandroid.packagingOptions.resources.excludes="**/protobuf/*,**/*.proto,META-INF/DEPENDENCIES"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
