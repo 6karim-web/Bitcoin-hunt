@@ -23,28 +23,29 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Force Clean Build and Fix Duplicates
+      - name: Surgical Fix and Build
         run: |
-          # 1. On nettoie tout pour éviter les erreurs "same file"
-          rm -rf final_app
-          mkdir -p final_app/app/src/main
+          # 1. On crée un dossier temporaire isolé
+          mkdir -p /tmp/app_build/app/src/main
           
-          # 2. On regroupe les fichiers
-          find . -name "settings.gradle" -exec cp {} final_app/ \;
-          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} final_app/ \;
-          find . -name "gradle.properties" -exec cp {} final_app/ \;
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} final_app/app/ \;
-          SRC_DIR=$(find . -type d -name "src" | head -n 1)
-          cp -r "$SRC_DIR"/. final_app/app/src/ || true
+          # 2. On aspire uniquement ce qui compte vraiment
+          find . -name "settings.gradle" -exec cp {} /tmp/app_build/ \;
+          find . -name "build.gradle" -not -path "*/app/*" -exec cp {} /tmp/app_build/ \;
+          find . -name "gradle.properties" -exec cp {} /tmp/app_build/ \;
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} /tmp/app_build/app/ \;
           
-          cd final_app
+          # On cherche le dossier src le plus complet
+          SRC_DIR=$(find . -type d -name "main" | head -n 1)
+          cp -r "$SRC_DIR"/. /tmp/app_build/app/src/main/ || true
           
-          # 3. SOLUTION FINALE : On force l'exclusion des fichiers qui font doublon
-          # On ajoute un bloc 'packagingOptions' pour fusionner les fichiers protobuf
-          sed -i '/android {/a \    packagingOptions { \n        pickFirst "google/protobuf/**" \n        exclude "META-INF/DEPENDENCIES" \n    }' app/build.gradle
-          
-          # 4. Compilation avec suppression des erreurs de SDK
+          # 3. On entre dans ce dossier propre et on patche les erreurs
+          cd /tmp/app_build
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+          
+          # Patch anti-doublon (Protobuf)
+          sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.proto" \n        pickFirst "google/protobuf/**" \n        exclude "META-INF/DEPENDENCIES" \n    }' app/build.gradle
+          
+          # 4. On lance l'APK
           gradle assembleDebug --no-daemon -x test
 
       - name: Upload APK artifact
