@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="₿ ECKEY BENCHMARK"
+        android:text="&#8383; ECKEY BENCHMARK"
         android:textColor="@color/terminal_orange"
         android:textSize="20sp"
         android:fontFamily="monospace"
@@ -22,7 +22,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        android:text="----------------------------------------"
         android:textColor="@color/terminal_dim_green"
         android:fontFamily="monospace"
         android:textSize="10sp"
@@ -32,7 +32,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="> TARGET_ADDRESS:"
+        android:text="&gt; TARGET_ADDRESS:"
         android:textColor="@color/terminal_green"
         android:fontFamily="monospace"
         android:textSize="12sp"
@@ -132,11 +132,10 @@
             android:text="@string/btn_start"
             android:textColor="@color/terminal_green"
             android:fontFamily="monospace"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:backgroundTint="@color/terminal_button_bg"
-            android:layout_marginEnd="6dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            android:background="@color/terminal_button_bg"
+            android:layout_marginEnd="6dp"/>
 
         <Button
             android:id="@+id/btnStop"
@@ -146,19 +145,18 @@
             android:text="@string/btn_stop"
             android:textColor="@color/terminal_stop_text"
             android:fontFamily="monospace"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:backgroundTint="@color/terminal_stop_bg"
+            android:background="@color/terminal_stop_bg"
             android:enabled="false"
-            android:layout_marginStart="6dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            android:layout_marginStart="6dp"/>
 
     </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="> CONSOLE OUTPUT:"
+        android:text="&gt; CONSOLE OUTPUT:"
         android:textColor="@color/terminal_green"
         android:fontFamily="monospace"
         android:textSize="12sp"
@@ -187,7 +185,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="[ Educational benchmark — ECKey generation speed test ]"
+        android:text="[ Educational benchmark - ECKey generation speed test ]"
         android:textColor="@color/terminal_dim_green"
         android:fontFamily="monospace"
         android:textSize="10sp"
