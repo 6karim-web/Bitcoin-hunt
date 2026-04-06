@@ -1,4 +1,4 @@
-name: Build Android APK - Atomic Force
+name: Build Android APK - Force Clean
 
 on:
   push:
@@ -23,41 +23,33 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Atomic Reconstruct and Build
+      - name: Radical Clean and Build
         run: |
-          # 1. Créer une structure Android standard propre
-          mkdir -p force_build/app/src/main
-          
-          # 2. Aspirer les fichiers vitaux (prend le premier trouvé pour chaque)
-          find . -name "settings.gradle" -exec cp {} force_build/ \; | head -n 1
-          find . -name "build.gradle" -not -path "./app/*" -exec cp {} force_build/ \; | head -n 1
-          find . -name "build.gradle" -path "*/app/*" -exec cp {} force_build/app/ \; | head -n 1
-          find . -name "AndroidManifest.xml" -exec cp --parents {} force_build/app/src/main/ \; 
-          
-          # Nettoyage des chemins pour le Manifest (on remonte tout dans main/)
-          mv force_build/app/src/main/**/*.xml force_build/app/src/main/ 2>/dev/null || true
-          
-          # 3. Aspirer les dossiers sources et ressources (sans doublons)
-          find . -type d -name "java" -exec cp -r {} force_build/app/src/main/ \; | head -n 1
-          find . -type d -name "res" -exec cp -r {} force_build/app/src/main/ \; | head -n 1
-          
-          # 4. Correction des bugs de compatibilité
-          cd force_build
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-          
-          # 5. Nettoyage radical des fichiers conflictuels
+          # 1. Trouver le vrai dossier racine (celui qui a settings.gradle)
+          REAL_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          echo "ROOT détecté : $REAL_ROOT"
+          cd "$REAL_ROOT"
+
+          # 2. Supprimer TOUS les fichiers qui ne sont pas essentiels au build Android
+          # On vire les fichiers proto, les fichiers temporaires et les doublons
           find . -name "*.proto" -delete
           find . -name "duplicate_*" -delete
+          find . -name "*.apk" -delete
           
-          # 6. FORCE BUILD
-          # On essaie d'abord la tâche standard, sinon on force l'assemble global
-          gradle assembleDebug --no-daemon -x test -x lint || gradle assemble --no-daemon
+          # 3. Réparer les propriétés Gradle pour forcer la compatibilité
+          rm -f gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+
+          # 4. Forcer Gradle à ignorer les erreurs de structure mineures
+          # On essaie d'abord la tâche globale 'assemble' qui est plus permissive
+          gradle assemble --no-daemon -x test -x lint --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-atomic
+          name: app-debug-force
           path: "**/*.apk"
           retention-days: 7
