@@ -19,19 +19,13 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Reset and Build
+      - name: Full Reconstruction
         run: |
           rm -rf *
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
 
-          # 1. PROPERTIES
-          cat <<EOF > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
-
-          # 2. SETTINGS (Strictement pour Gradle 9)
+          # 1. SETTINGS (Indispensable pour Gradle 9)
           cat <<EOF > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
@@ -42,12 +36,12 @@ jobs:
           include ':app'
           EOF
 
-          # 3. BUILD.GRADLE (AGP 8.2.2)
+          # 2. BUILD.GRADLE RACINE
           cat <<EOF > build.gradle
           plugins { id 'com.android.application' version '8.2.2' apply false }
           EOF
 
-          # 4. APP/BUILD.GRADLE
+          # 3. APP/BUILD.GRADLE
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -67,27 +61,11 @@ jobs:
           }
           EOF
 
-          # 5. RESSOURCES OBLIGATOIRES (Pour éviter le crash après checkMetadata)
-          cat <<EOF > app/src/main/res/values/colors.xml
-          <resources>
-              <color name="purple_500">#FF6200EE</color>
-              <color name="white">#FFFFFFFF</color>
-          </resources>
-          EOF
-
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="Theme.BitcoinHunt" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-                  <item name="colorPrimary">@color/purple_500</item>
-              </style>
-          </resources>
-          EOF
-
-          # 6. MANIFEST & JAVA
+          # 4. MANIFEST (CORRECTION DE L'URI XMLNS)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
-              <application android:label="Bitcoin Hunt" android:theme="@style/Theme.BitcoinHunt">
+              <application android:label="Bitcoin Hunt">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -98,6 +76,7 @@ jobs:
           </manifest>
           EOF
 
+          # 5. JAVA MINIMAL
           cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
           package com.example.bitcoinhunt;
           import android.os.Bundle;
@@ -110,6 +89,7 @@ jobs:
           }
           EOF
 
+          # 6. BUILD
           gradle assembleDebug --no-daemon
 
       - name: Upload APK
