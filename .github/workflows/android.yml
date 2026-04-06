@@ -18,35 +18,31 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle 8.0
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.0'
-          cache-disabled: true
 
-      - name: Auto-Detect and Build
+      - name: Build Android Project
         run: |
-          # 1. On cherche le VRAI dossier qui contient 'settings.gradle'
+          # 1. Localiser le dossier racine du projet Android
           PROJ_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "Projet trouvé dans : $PROJ_ROOT"
+          echo "Dossier projet détecté : $PROJ_ROOT"
           
-          # 2. On crée un dossier de travail propre à la racine
-          mkdir -p final_app/app
+          # 2. Entrer dans ce dossier pour exécuter les commandes
+          cd "$PROJ_ROOT"
           
-          # 3. On aspire les fichiers vitaux depuis l'endroit trouvé
-          cp -r "$PROJ_ROOT"/* final_app/ 2>/dev/null || true
-          
-          # 4. On entre dans le dossier et on nettoie les doublons
-          cd final_app
-          find . -name "*.proto" -type f -delete
+          # 3. Nettoyage et configuration rapide
+          find . -name "*.proto" -type f -delete || true
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 5. On lance la compilation
+          # 4. Exécuter le build (on utilise 'gradle' car setup-gradle l'a installé)
+          # Si ça échoue encore, on essaiera 'assemble' tout court
           gradle assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: "**/*.apk" # Recherche plus large pour être sûr de trouver l'APK
           retention-days: 7
