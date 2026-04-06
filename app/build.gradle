@@ -1,15 +1,49 @@
-// Updated build.gradle to fix protobuf issues
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
 
 android {
+    namespace 'com.example.bitcoinhunt'
+    compileSdk 33
+
     defaultConfig {
-        multiDexEnabled true
-        // other configurations
+        applicationId 'com.example.bitcoinhunt'
+        minSdk 21
+        targetSdk 33
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/*.kotlin_module'
+        }
     }
 }
 
 dependencies {
-    implementation ('com.google.protobuf:protobuf-java:3.5.1') {
-        exclude group: 'com.google.protobuf', module: 'protobuf-javalite'
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.1'
+    implementation 'org.bitcoinj:bitcoinj-core:0.15.10' {
+        exclude group: 'com.google.protobuf'
     }
-    // other dependencies
+    implementation 'ch.qos.logback:logback-classic:1.2.6'
 }
