@@ -42,8 +42,11 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.4.1'
-    implementation 'org.bitcoinj:bitcoinj-core:0.15.10' {
+    
+    // Correction de la syntaxe ici (ajout des parenthèses)
+    implementation('org.bitcoinj:bitcoinj-core:0.15.10') {
         exclude group: 'com.google.protobuf'
     }
+    
     implementation 'ch.qos.logback:logback-classic:1.2.6'
 }
