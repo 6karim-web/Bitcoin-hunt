@@ -1,1 +1,2 @@
-<content_of_settings.gradle>
+rootProject.name = "BitcoinBenchmark"
+include ':app'
