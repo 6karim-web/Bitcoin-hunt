@@ -1,4 +1,4 @@
-name: Build Android APK - TOTAL CLEAN
+name: Build Android APK - FINAL FIX 2026
 
 on:
   push:
@@ -12,88 +12,83 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Radical Cleanup and Build
+      - name: Rebuild Project for Gradle 9
         run: |
-          # 1. CRÉATION D'UNE STRUCTURE PROPRE DÈS LA RACINE
+          # 1. Nettoyage radical
+          rm -rf .gradle app/build build settings.gradle build.gradle app/build.gradle
+
+          # 2. Structure
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/layout
-          
-          # 2. RÉCUPÉRATION DES SOURCES (Si existantes)
-          # On cherche le Manifest et le MainActivity pour les replacer au bon endroit
-          find . -name "AndroidManifest.xml" -not -path "./app/*" -exec cp {} app/src/main/AndroidManifest.xml \; || true
-          find . -name "MainActivity.java" -not -path "./app/*" -exec cp {} app/src/main/java/com/example/bitcoinhunt/MainActivity.java \; || true
-          find . -name "MainActivity.kt" -not -path "./app/*" -exec cp {} app/src/main/java/com/example/bitcoinhunt/MainActivity.kt \; || true
 
-          # 3. GÉNÉRATION DES FICHIERS DE CONFIGURATION GRADLE (Écrase les anciens)
+          # 3. Config compatible Gradle 9.4.1 + AGP 8.3+
           cat <<EOF > settings.gradle
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
           rootProject.name = "BitcoinHunt"
           include ':app'
           EOF
 
           cat <<EOF > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
+          plugins {
+              id 'com.android.application' version '8.3.0' apply false
+              id 'com.android.library' version '8.3.0' apply false
           }
           EOF
 
           cat <<EOF > app/build.gradle
-          plugins { 
-              id 'com.android.application'
-          }
+          plugins { id 'com.android.application' }
           android {
               namespace 'com.example.bitcoinhunt'
-              compileSdk 33
+              compileSdk 34
               defaultConfig {
                   applicationId "com.example.bitcoinhunt"
-                  minSdk 21
-                  targetSdk 33
+                  minSdk 24
+                  targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                  }
+              buildFeatures {
+                  buildConfig = true
               }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.9.0'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'com.google.android.material:material:1.11.0'
           }
           EOF
 
-          # 4. RESSOURCES CRITIQUES (Évite les erreurs de ressources manquantes)
-          cat <<EOF > app/src/main/res/values/strings.xml
-          <resources><string name="app_name">Bitcoin Hunt</string></resources>
-          EOF
-          
-          cat <<EOF > app/src/main/res/values/themes.xml
-          <resources>
-              <style name="Theme.BitcoinHunt" parent="Theme.MaterialComponents.DayNight.DarkActionBar" />
-          </resources>
+          # 4. Manifest de secours (indispensable)
+          cat <<EOF > app/src/main/AndroidManifest.xml
+          <manifest xmlns:android="http://android.com">
+              <application android:label="Bitcoin Hunt">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
           EOF
 
-          # 5. GÉNÉRATION DU WRAPPER ET BUILD
-          # On utilise Gradle installé sur l'image runner pour construire l'APK
-          gradle wrapper --gradle-version 8.0
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          # 5. Build avec le Gradle 9.4.1 du système
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BitcoinHunt-Debug-APK
+          name: BitcoinHunt-Success
           path: app/build/outputs/apk/debug/*.apk
