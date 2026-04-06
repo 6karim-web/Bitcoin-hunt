@@ -1,2 +1,3 @@
 rootProject.name = "BitcoinBenchmark"
-include ':app'
+  include ':app'
+  
