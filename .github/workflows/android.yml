@@ -1,4 +1,4 @@
-name: Build Android APK - Force Clean
+name: Build Android APK - Atomic Reconstructor
 
 on:
   push:
@@ -23,33 +23,58 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Radical Clean and Build
+      - name: Force Project Structure
         run: |
-          # 1. Trouver le vrai dossier racine (celui qui a settings.gradle)
-          REAL_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "ROOT détecté : $REAL_ROOT"
-          cd "$REAL_ROOT"
+          # 1. Localiser les fichiers vitaux n'importe où
+          SETTINGS_PATH=$(find . -name "settings.gradle" | head -n 1)
+          PROJ_ROOT=$(dirname "$SETTINGS_PATH")
+          echo "Base du projet : $PROJ_ROOT"
+          cd "$PROJ_ROOT"
 
-          # 2. Supprimer TOUS les fichiers qui ne sont pas essentiels au build Android
-          # On vire les fichiers proto, les fichiers temporaires et les doublons
-          find . -name "*.proto" -delete
-          find . -name "duplicate_*" -delete
-          find . -name "*.apk" -delete
-          
-          # 3. Réparer les propriétés Gradle pour forcer la compatibilité
-          rm -f gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
+          # 2. RÉPARATION ATOMIQUE : Si build.gradle manque ou est vide, on le crée
+          if [ ! -f "build.gradle" ]; then
+            echo "Construction d'un build.gradle d'urgence..."
+            cat <<EOF > build.gradle
+            buildscript {
+                repositories { google(); mavenCentral() }
+                dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
+            }
+            allprojects {
+                repositories { google(); mavenCentral() }
+            }
+EOF
+          fi
+
+          # 3. Forcer le module 'app' (cœur de l'application)
+          mkdir -p app
+          if [ ! -f "app/build.gradle" ]; then
+             cat <<EOF > app/build.gradle
+             plugins { id 'com.android.application' }
+             android {
+                 namespace 'com.bitcoin.hunt'
+                 compileSdk 34
+                 defaultConfig { applicationId "com.bitcoin.hunt"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+             }
+EOF
+          fi
+
+          # 4. Déplacer les sources éparpillées vers le standard Android
+          mkdir -p app/src/main/java
+          mkdir -p app/src/main/res
+          find . -maxdepth 10 -name "*.java" -exec cp --parents {} app/src/main/java/ \; 2>/dev/null || true
+          find . -maxdepth 10 -name "res" -type d -exec cp -r {}/.. app/src/main/ \; 2>/dev/null || true
+
+          # 5. Nettoyage final et BUILD
+          echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
-          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
-
-          # 4. Forcer Gradle à ignorer les erreurs de structure mineures
-          # On essaie d'abord la tâche globale 'assemble' qui est plus permissive
-          gradle assemble --no-daemon -x test -x lint --stacktrace
+          
+          # On liste les tâches pour le log avant de lancer le marteau-pilon
+          gradle tasks
+          gradle :app:assembleDebug --no-daemon -x test -x lint
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-force
+          name: app-debug-reconstructed
           path: "**/*.apk"
           retention-days: 7
