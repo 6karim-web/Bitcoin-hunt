@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK - Atomic Force
 
 on:
   push:
@@ -23,26 +23,41 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Build Android Project
+      - name: Atomic Reconstruct and Build
         run: |
-          # 1. Localiser le dossier racine du projet Android
-          PROJ_ROOT=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
-          echo "Dossier projet détecté : $PROJ_ROOT"
+          # 1. Créer une structure Android standard propre
+          mkdir -p force_build/app/src/main
           
-          # 2. Entrer dans ce dossier pour exécuter les commandes
-          cd "$PROJ_ROOT"
+          # 2. Aspirer les fichiers vitaux (prend le premier trouvé pour chaque)
+          find . -name "settings.gradle" -exec cp {} force_build/ \; | head -n 1
+          find . -name "build.gradle" -not -path "./app/*" -exec cp {} force_build/ \; | head -n 1
+          find . -name "build.gradle" -path "*/app/*" -exec cp {} force_build/app/ \; | head -n 1
+          find . -name "AndroidManifest.xml" -exec cp --parents {} force_build/app/src/main/ \; 
           
-          # 3. Nettoyage et configuration rapide
-          find . -name "*.proto" -type f -delete || true
+          # Nettoyage des chemins pour le Manifest (on remonte tout dans main/)
+          mv force_build/app/src/main/**/*.xml force_build/app/src/main/ 2>/dev/null || true
+          
+          # 3. Aspirer les dossiers sources et ressources (sans doublons)
+          find . -type d -name "java" -exec cp -r {} force_build/app/src/main/ \; | head -n 1
+          find . -type d -name "res" -exec cp -r {} force_build/app/src/main/ \; | head -n 1
+          
+          # 4. Correction des bugs de compatibilité
+          cd force_build
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
           echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
           
-          # 4. Exécuter le build (on utilise 'gradle' car setup-gradle l'a installé)
-          # Si ça échoue encore, on essaiera 'assemble' tout court
-          gradle assembleDebug --no-daemon -x test -x lint
+          # 5. Nettoyage radical des fichiers conflictuels
+          find . -name "*.proto" -delete
+          find . -name "duplicate_*" -delete
+          
+          # 6. FORCE BUILD
+          # On essaie d'abord la tâche standard, sinon on force l'assemble global
+          gradle assembleDebug --no-daemon -x test -x lint || gradle assemble --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: "**/*.apk" # Recherche plus large pour être sûr de trouver l'APK
+          name: app-debug-atomic
+          path: "**/*.apk"
           retention-days: 7
