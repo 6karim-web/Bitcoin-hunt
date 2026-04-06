@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="terminal_bg">#FF0D0D0D</color>
+    <color name="terminal_green">#FF00FF41</color>
+    <color name="terminal_orange">#FFFF6600</color>
+    <color name="terminal_dim_green">#FF005C18</color>
+    <color name="terminal_border">#FF1A1A1A</color>
+    <color name="terminal_input_bg">#FF111111</color>
+    <color name="terminal_button_bg">#FF001A00</color>
+    <color name="terminal_stop_bg">#FF1A0000</color>
+    <color name="terminal_stop_text">#FFFF3300</color>
+</resources>
