@@ -17,23 +17,18 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
+          # Suppression du cache automatique pour éviter les fichiers corrompus des essais précédents
 
-      - name: Full Reconstruction
+      - name: Clean and Generate Build Files
         run: |
-          # 1. Nettoyage et structure complète
-          rm -rf *
+          # 1. NETTOYAGE TOTAL (y compris les fichiers cachés)
+          find . -maxdepth 1 ! -name '.github' ! -name '.' -exec rm -rf {} +
+
+          # 2. STRUCTURE MINIMALE
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
 
-          # 2. PROPERTIES (Indispensable pour Gradle 9)
-          cat <<EOF > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          EOF
-
-          # 3. SETTINGS (Format 2026)
+          # 3. SETTINGS (Format Gradle 9.4.1)
           cat <<EOF > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
@@ -44,12 +39,12 @@ jobs:
           include ':app'
           EOF
 
-          # 4. BUILD.GRADLE RACINE
+          # 4. BUILD.GRADLE (Plugin AGP 8.3.0)
           cat <<EOF > build.gradle
-          plugins { id 'com.android.application' version '8.4.0' apply false }
+          plugins { id 'com.android.application' version '8.3.0' apply false }
           EOF
 
-          # 5. APP/BUILD.GRADLE (SDK 34 pour stabilité totale)
+          # 5. APP/BUILD.GRADLE (SDK 34)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -69,16 +64,11 @@ jobs:
           }
           EOF
 
-          # 6. RESSOURCES MINIMALES (Évite les erreurs de fusion)
-          cat <<EOF > app/src/main/res/values/strings.xml
-          <resources><string name="app_name">Bitcoin Hunt</string></resources>
-          EOF
-
-          # 7. MANIFEST (Propre et complet)
+          # 6. MANIFEST & JAVA
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
-              <application android:label="@string/app_name" android:allowBackup="true">
+              <application android:label="Bitcoin Hunt" android:theme="@style/Theme.AppCompat.Light">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -89,7 +79,6 @@ jobs:
           </manifest>
           EOF
 
-          # 8. JAVA (MainActivity)
           cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
           package com.example.bitcoinhunt;
           import android.os.Bundle;
@@ -102,8 +91,9 @@ jobs:
           }
           EOF
 
-          # 9. BUILD FINAL
-          gradle assembleDebug --stacktrace --no-daemon
+          # 7. BUILD AVEC OPTIONS DE SÉCURITÉ
+          # --no-build-cache évite les erreurs de tâches précédentes
+          gradle assembleDebug --no-daemon --no-build-cache --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
