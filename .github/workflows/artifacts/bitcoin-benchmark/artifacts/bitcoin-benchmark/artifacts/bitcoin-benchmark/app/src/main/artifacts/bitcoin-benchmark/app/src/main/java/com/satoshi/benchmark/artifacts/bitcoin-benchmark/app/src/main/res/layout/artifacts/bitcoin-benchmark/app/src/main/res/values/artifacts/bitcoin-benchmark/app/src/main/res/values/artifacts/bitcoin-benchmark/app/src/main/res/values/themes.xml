@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.BitcoinBenchmark" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.BitcoinBenchmark" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/terminal_bg</item>
         <item name="android:statusBarColor">@color/terminal_bg</item>
         <item name="android:navigationBarColor">@color/terminal_bg</item>
         <item name="colorPrimary">@color/terminal_green</item>
-        <item name="colorPrimaryVariant">@color/terminal_dim_green</item>
-        <item name="colorOnPrimary">@color/terminal_bg</item>
-        <item name="colorSurface">@color/terminal_bg</item>
+        <item name="colorPrimaryDark">@color/terminal_bg</item>
+        <item name="colorAccent">@color/terminal_orange</item>
         <item name="android:textColorPrimary">@color/terminal_green</item>
+        <item name="android:textColorSecondary">@color/terminal_dim_green</item>
         <item name="android:textColorHint">@color/terminal_dim_green</item>
-        <item name="editTextStyle">@style/TerminalEditText</item>
+        <item name="android:editTextStyle">@style/TerminalEditText</item>
     </style>
 
     <style name="TerminalEditText" parent="Widget.AppCompat.EditText">
