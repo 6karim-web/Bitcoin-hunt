@@ -10,7 +10,6 @@ jobs:
   build:
     name: Build Debug APK
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,13 +26,29 @@ jobs:
         with:
           gradle-version: '8.0'
 
-      - name: Build Debug APK
-        working-directory: artifacts/bitcoin-benchmark
-        run: gradle assembleDebug --stacktrace
+      - name: Auto-Detect and Build
+        run: |
+          # 1. Trouver où se cache le fichier settings.gradle
+          PROJ_PATH=$(find . -name "settings.gradle" -exec dirname {} + | head -n 1)
+          
+          if [ -z "$PROJ_PATH" ]; then
+            echo "ERREUR : Impossible de trouver le fichier settings.gradle dans le dépôt !"
+            exit 1
+          fi
+          
+          echo "Projet détecté dans le dossier : $PROJ_PATH"
+          cd "$PROJ_PATH"
+
+          # 2. Correction rapide des permissions et des propriétés
+          echo "android.suppressUnsupportedCompileSdk=34" >> gradle.properties
+          
+          # 3. Lancement du build (on utilise 'gradle' directement comme suggéré par Replit)
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: artifacts/bitcoin-benchmark/app/build/outputs/apk/debug/app-debug.apk
+          # On utilise un pattern large pour trouver l'APK où qu'il soit généré
+          path: "**/build/outputs/apk/debug/*.apk"
           retention-days: 7
