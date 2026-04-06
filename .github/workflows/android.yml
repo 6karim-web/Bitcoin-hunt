@@ -17,16 +17,20 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Suppression du cache automatique pour éviter les fichiers corrompus des essais précédents
 
-      - name: Clean and Generate Build Files
+      - name: Hard Reset & Success Build
         run: |
-          # 1. NETTOYAGE TOTAL (y compris les fichiers cachés)
+          # 1. Nettoyage total
           find . -maxdepth 1 ! -name '.github' ! -name '.' -exec rm -rf {} +
-
-          # 2. STRUCTURE MINIMALE
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
+
+          # 2. PROPERTIES (La clé pour checkDebugAarMetadata)
+          cat <<EOF > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.suppressUnsupportedCompileSdk=35
+          EOF
 
           # 3. SETTINGS (Format Gradle 9.4.1)
           cat <<EOF > settings.gradle
@@ -39,28 +43,28 @@ jobs:
           include ':app'
           EOF
 
-          # 4. BUILD.GRADLE (Plugin AGP 8.3.0)
+          # 4. BUILD.GRADLE (Plugin 8.4.0)
           cat <<EOF > build.gradle
-          plugins { id 'com.android.application' version '8.3.0' apply false }
+          plugins { id 'com.android.application' version '8.4.0' apply false }
           EOF
 
-          # 5. APP/BUILD.GRADLE (SDK 34)
+          # 5. APP/BUILD.GRADLE (SDK 35 Obligatoire)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
               namespace 'com.example.bitcoinhunt'
-              compileSdk 34
+              compileSdk 35
               defaultConfig {
                   applicationId "com.example.bitcoinhunt"
-                  minSdk 24
-                  targetSdk 34
+                  minSdk 26
+                  targetSdk 35
                   versionCode 1
                   versionName "1.0"
               }
           }
           dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.10.0'
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'com.google.android.material:material:1.12.0'
           }
           EOF
 
@@ -84,16 +88,12 @@ jobs:
           import android.os.Bundle;
           import androidx.appcompat.app.AppCompatActivity;
           public class MainActivity extends AppCompatActivity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-              }
+              @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); }
           }
           EOF
 
-          # 7. BUILD AVEC OPTIONS DE SÉCURITÉ
-          # --no-build-cache évite les erreurs de tâches précédentes
-          gradle assembleDebug --no-daemon --no-build-cache --stacktrace
+          # 7. BUILD
+          gradle assembleDebug --no-daemon --no-build-cache
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
