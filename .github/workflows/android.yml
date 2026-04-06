@@ -1,4 +1,4 @@
-name: Build Android APK - TOTAL CLEAN
+name: Build Android APK - FIXED
 
 on:
   push:
@@ -19,17 +19,24 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Hard Reset & Success Build
+      - name: Build
         run: |
-          # 1. Nettoyage de tout ce qui peut gêner
-          rm -rf .gradle app/build build settings.gradle build.gradle app/build.gradle app/src/main/AndroidManifest.xml
-
-          # 2. Structure propre
+          # 1. On sauvegarde ton code source avant de tout raser
+          TEMP_SRC=$(find . -name "MainActivity.java" -o -name "MainActivity.kt" | head -n 1)
+          
+          # 2. Nettoyage et création structure
+          rm -rf .gradle app/build build
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
 
-          # 3. Configuration Gradle 9.4.1 (Standard 2026)
+          # 3. On replace TON code dans le bon dossier
+          if [ -f "$TEMP_SRC" ]; then
+            cp "$TEMP_SRC" app/src/main/java/com/example/bitcoinhunt/MainActivity.java
+            # On force le package pour correspondre au build
+            sed -i '1i package com.example.bitcoinhunt;' app/src/main/java/com/example/bitcoinhunt/MainActivity.java
+          fi
+
+          # 4. Config Gradle
           cat <<EOF > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
@@ -63,17 +70,15 @@ jobs:
           }
           EOF
 
-          # 4. MANIFEST CORRIGÉ (L'ERREUR VENAIT D'ICI)
+          # 5. Manifest (Correction de l'erreur processDebugMainManifest)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
               <application
-                  android:allowBackup="true"
                   android:label="Bitcoin Hunt"
-                  android:supportsRtl="true"
                   android:theme="@style/Theme.AppCompat.Light">
                   <activity
-                      android:name=".MainActivity"
+                      android:name="com.example.bitcoinhunt.MainActivity"
                       android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -84,11 +89,10 @@ jobs:
           </manifest>
           EOF
 
-          # 5. Build final
-          gradle assembleDebug --stacktrace
+          gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BitcoinHunt-Final
+          name: BitcoinHunt-APK
           path: app/build/outputs/apk/debug/*.apk
