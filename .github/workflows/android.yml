@@ -19,25 +19,23 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Success Build Reconstruction
+      - name: Full Reconstruction
         run: |
-          # 1. Nettoyage et structure
+          # 1. Nettoyage et structure complète
           rm -rf *
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
 
-          # 2. PROPERTIES (Crucial pour passer checkDebugAarMetadata sur SDK 35)
+          # 2. PROPERTIES (Indispensable pour Gradle 9)
           cat <<EOF > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
-          android.suppressUnsupportedCompileSdk=35
           EOF
 
-          # 3. SETTINGS (Format Gradle 9.4+)
+          # 3. SETTINGS (Format 2026)
           cat <<EOF > settings.gradle
-          pluginManagement { 
-              repositories { google(); mavenCentral(); gradlePluginPortal() } 
-          }
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories { google(); mavenCentral() }
@@ -46,36 +44,41 @@ jobs:
           include ':app'
           EOF
 
-          # 4. BUILD.GRADLE RACINE (Version 8.4.0 pour Gradle 9)
+          # 4. BUILD.GRADLE RACINE
           cat <<EOF > build.gradle
           plugins { id 'com.android.application' version '8.4.0' apply false }
           EOF
 
-          # 5. APP/BUILD.GRADLE (SDK 35 est obligatoire pour valider les AAR en 2026)
+          # 5. APP/BUILD.GRADLE (SDK 34 pour stabilité totale)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
               namespace 'com.example.bitcoinhunt'
-              compileSdk 35
+              compileSdk 34
               defaultConfig {
                   applicationId "com.example.bitcoinhunt"
-                  minSdk 26
-                  targetSdk 35
+                  minSdk 24
+                  targetSdk 34
                   versionCode 1
                   versionName "1.0"
               }
           }
           dependencies {
-              implementation 'androidx.appcompat:appcompat:1.7.0'
-              implementation 'com.google.android.material:material:1.12.0'
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.10.0'
           }
           EOF
 
-          # 6. MANIFEST CORRIGÉ (URI correcte)
+          # 6. RESSOURCES MINIMALES (Évite les erreurs de fusion)
+          cat <<EOF > app/src/main/res/values/strings.xml
+          <resources><string name="app_name">Bitcoin Hunt</string></resources>
+          EOF
+
+          # 7. MANIFEST (Propre et complet)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
-              <application android:label="Bitcoin Hunt">
+              <application android:label="@string/app_name" android:allowBackup="true">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -86,7 +89,7 @@ jobs:
           </manifest>
           EOF
 
-          # 7. JAVA MINIMAL (Validation de compilation)
+          # 8. JAVA (MainActivity)
           cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
           package com.example.bitcoinhunt;
           import android.os.Bundle;
@@ -99,8 +102,8 @@ jobs:
           }
           EOF
 
-          # 8. BUILD FINAL
-          gradle assembleDebug --no-daemon
+          # 9. BUILD FINAL
+          gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
