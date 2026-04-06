@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Bitcoin Hunt</string>
+    <string name="buy_bitcoin">Buy Bitcoin</string>
+    <string name="sell_bitcoin">Sell Bitcoin</string>
+    <string name="wallet">Wallet</string>
+    <string name="transaction_history">Transaction History</string>
+    <string name="settings">Settings</string>
+</resources>
