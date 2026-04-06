@@ -25,56 +25,54 @@ jobs:
 
       - name: Force Project Structure
         run: |
-          # 1. Localiser les fichiers vitaux n'importe où
+          # 1. Localiser le projet
           SETTINGS_PATH=$(find . -name "settings.gradle" | head -n 1)
           PROJ_ROOT=$(dirname "$SETTINGS_PATH")
-          echo "Base du projet : $PROJ_ROOT"
           cd "$PROJ_ROOT"
 
-          # 2. RÉPARATION ATOMIQUE : Si build.gradle manque ou est vide, on le crée
-          if [ ! -f "build.gradle" ]; then
-            echo "Construction d'un build.gradle d'urgence..."
-            cat <<EOF > build.gradle
-            buildscript {
-                repositories { google(); mavenCentral() }
-                dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-            }
-            allprojects {
-                repositories { google(); mavenCentral() }
-            }
-EOF
-          fi
+          # 2. Création forcée du build.gradle racine
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
 
-          # 3. Forcer le module 'app' (cœur de l'application)
+          # 3. Création forcée du module 'app'
           mkdir -p app
-          if [ ! -f "app/build.gradle" ]; then
-             cat <<EOF > app/build.gradle
-             plugins { id 'com.android.application' }
-             android {
-                 namespace 'com.bitcoin.hunt'
-                 compileSdk 34
-                 defaultConfig { applicationId "com.bitcoin.hunt"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
-             }
-EOF
-          fi
+          cat << 'EOF' > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.bitcoin.hunt'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.bitcoin.hunt"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
 
-          # 4. Déplacer les sources éparpillées vers le standard Android
+          # 4. Remplacement du settings.gradle pour être sûr qu'il inclut ':app'
+          echo "include ':app'" > settings.gradle
+
+          # 5. Aspiration des fichiers Java et ressources
           mkdir -p app/src/main/java
-          mkdir -p app/src/main/res
-          find . -maxdepth 10 -name "*.java" -exec cp --parents {} app/src/main/java/ \; 2>/dev/null || true
-          find . -maxdepth 10 -name "res" -type d -exec cp -r {}/.. app/src/main/ \; 2>/dev/null || true
-
-          # 5. Nettoyage final et BUILD
+          find . -name "*.java" -exec cp --parents {} app/src/main/java/ \; 2>/dev/null || true
+          
+          # 6. Build final
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
-          
-          # On liste les tâches pour le log avant de lancer le marteau-pilon
-          gradle tasks
-          gradle :app:assembleDebug --no-daemon -x test -x lint
+          ./gradlew :app:assembleDebug --no-daemon -x test -x lint || gradle :app:assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-reconstructed
+          name: app-debug-atomic
           path: "**/*.apk"
           retention-days: 7
