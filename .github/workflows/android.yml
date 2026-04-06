@@ -19,20 +19,19 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Full Reset and Build
+      - name: Reset and Build
         run: |
           rm -rf *
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
 
-          # 1. PROPERTIES (Pour corriger l'erreur de métadonnées AAR)
+          # 1. PROPERTIES
           cat <<EOF > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
-          android.suppressUnsupportedCompileSdk=34
           EOF
 
-          # 2. SETTINGS
+          # 2. SETTINGS (Strictement pour Gradle 9)
           cat <<EOF > settings.gradle
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
@@ -43,12 +42,12 @@ jobs:
           include ':app'
           EOF
 
-          # 3. BUILD.GRADLE (Version 8.2.2 pour Gradle 9)
+          # 3. BUILD.GRADLE (AGP 8.2.2)
           cat <<EOF > build.gradle
           plugins { id 'com.android.application' version '8.2.2' apply false }
           EOF
 
-          # 4. APP/BUILD.GRADLE (SDK 34 pour compatibilité max)
+          # 4. APP/BUILD.GRADLE
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -68,11 +67,27 @@ jobs:
           }
           EOF
 
-          # 5. MANIFEST & JAVA
+          # 5. RESSOURCES OBLIGATOIRES (Pour éviter le crash après checkMetadata)
+          cat <<EOF > app/src/main/res/values/colors.xml
+          <resources>
+              <color name="purple_500">#FF6200EE</color>
+              <color name="white">#FFFFFFFF</color>
+          </resources>
+          EOF
+
+          cat <<EOF > app/src/main/res/values/themes.xml
+          <resources>
+              <style name="Theme.BitcoinHunt" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+                  <item name="colorPrimary">@color/purple_500</item>
+              </style>
+          </resources>
+          EOF
+
+          # 6. MANIFEST & JAVA
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
-              <application android:label="Bitcoin Hunt" android:theme="@style/Theme.AppCompat.Light">
+              <application android:label="Bitcoin Hunt" android:theme="@style/Theme.BitcoinHunt">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
