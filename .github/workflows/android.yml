@@ -8,95 +8,116 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Hard Reset & Success Build
-        run: |
-          # 1. Nettoyage total
-          find . -maxdepth 1 ! -name '.github' ! -name '.' -exec rm -rf {} +
-          mkdir -p app/src/main/java/com/example/bitcoinhunt
-          mkdir -p app/src/main/res/values
-
-          # 2. PROPERTIES (La clé pour checkDebugAarMetadata)
-          cat <<EOF > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          android.suppressUnsupportedCompileSdk=35
-          EOF
-
-          # 3. SETTINGS (Format Gradle 9.4.1)
-          cat <<EOF > settings.gradle
-          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "BitcoinHunt"
-          include ':app'
-          EOF
-
-          # 4. BUILD.GRADLE (Plugin 8.4.0)
-          cat <<EOF > build.gradle
-          plugins { id 'com.android.application' version '8.4.0' apply false }
-          EOF
-
-          # 5. APP/BUILD.GRADLE (SDK 35 Obligatoire)
-          cat <<EOF > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.example.bitcoinhunt'
-              compileSdk 35
-              defaultConfig {
-                  applicationId "com.example.bitcoinhunt"
-                  minSdk 26
-                  targetSdk 35
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-          dependencies {
-              implementation 'androidx.appcompat:appcompat:1.7.0'
-              implementation 'com.google.android.material:material:1.12.0'
-          }
-          EOF
-
-          # 6. MANIFEST & JAVA
-          cat <<EOF > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://android.com">
-              <application android:label="Bitcoin Hunt" android:theme="@style/Theme.AppCompat.Light">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
-          package com.example.bitcoinhunt;
-          import android.os.Bundle;
-          import androidx.appcompat.app.AppCompatActivity;
-          public class MainActivity extends AppCompatActivity {
-              @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); }
-          }
-          EOF
-
-          # 7. BUILD
-          gradle assembleDebug --no-daemon --no-build-cache
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: BitcoinHunt-APK
-          path: app/build/outputs/apk/debug/*.apk
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Hard Reset & Successful Build
+      run: |
+        # 1. Clean up
+        find . -maxdepth 1 ! -name '.github' ! -name '.' -exec rm -rf {} +
+        mkdir -p app/src/main/java/com/example/bitcoinhunt
+        mkdir -p app/src/main/res/values
+        
+        # 2. Set Gradle properties
+        cat <<EOF > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        android.suppressUnsupportedCompileSdk=35
+        EOF
+        
+        # 3. Configure Gradle settings
+        cat <<EOF > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "BitcoinHunt"
+        include ':app'
+        EOF
+        
+        # 4. Set up the build.gradle file
+        cat <<EOF > build.gradle
+        plugins {
+            id 'com.android.application' version '8.4.0' apply false
+        }
+        EOF
+        
+        # 5. Configure the app/build.gradle file
+        cat <<EOF > app/build.gradle
+        plugins {
+            id 'com.android.application'
+        }
+        android {
+            namespace 'com.example.bitcoinhunt'
+            compileSdk 35
+            defaultConfig {
+                applicationId "com.example.bitcoinhunt"
+                minSdk 26
+                targetSdk 35
+                versionCode 1
+                versionName "1.0"
+            }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.7.0'
+            implementation 'com.google.android.material:material:1.12.0'
+        }
+        EOF
+        
+        # 6. Create the Android Manifest and MainActivity
+        cat <<EOF > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application
+                android:label="Bitcoin Hunt"
+                android:theme="@style/Theme.AppCompat.Light">
+                <activity
+                    android:name=".MainActivity"
+                    android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+            </application>
+        </manifest>
+        EOF
+        
+        cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
+        package com.example.bitcoinhunt;
+        import android.os.Bundle;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class MainActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+            }
+        }
+        EOF
+        
+        # 7. Build the APK
+        gradle assembleDebug --no-daemon --no-build-cache
+        
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: BitcoinHunt-APK
+        path: app/build/outputs/apk/debug/*.apk
