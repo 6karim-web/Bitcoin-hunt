@@ -1,13 +1,16 @@
-name: Build Android APK - Atomic Reconstructor
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build Debug APK
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,62 +20,20 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Setup Gradle
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.0'
 
-      - name: Force Project Structure
-        run: |
-          # 1. Localiser le projet
-          SETTINGS_PATH=$(find . -name "settings.gradle" | head -n 1)
-          PROJ_ROOT=$(dirname "$SETTINGS_PATH")
-          cd "$PROJ_ROOT"
-
-          # 2. Création forcée du build.gradle racine
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.0.2' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-
-          # 3. Création forcée du module 'app'
-          mkdir -p app
-          cat << 'EOF' > app/build.gradle
-          plugins { id 'com.android.application' }
-          android {
-              namespace 'com.bitcoin.hunt'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.bitcoin.hunt"
-                  minSdk 24
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-          }
-          EOF
-
-          # 4. Remplacement du settings.gradle pour être sûr qu'il inclut ':app'
-          echo "include ':app'" > settings.gradle
-
-          # 5. Aspiration des fichiers Java et ressources
-          mkdir -p app/src/main/java
-          find . -name "*.java" -exec cp --parents {} app/src/main/java/ \; 2>/dev/null || true
-          
-          # 6. Build final
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          ./gradlew :app:assembleDebug --no-daemon -x test -x lint || gradle :app:assembleDebug
+      - name: Build Debug APK
+        working-directory: artifacts/bitcoin-benchmark
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-atomic
-          path: "**/*.apk"
+          name: app-debug
+          path: artifacts/bitcoin-benchmark/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
