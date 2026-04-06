@@ -1,4 +1,4 @@
-name: Build Android APK - FORCE SUCCESS
+name: Build Android APK
 
 on:
   push:
@@ -17,21 +17,19 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Hard Reset and Full Generation
+      - name: Clean and Generate Build Files
         run: |
-          # 1. ON RASE TOUT SANS PITIÉ
           rm -rf *
-          rm -rf .github/workflows/android.yml # On garde juste le workflow en cours en mémoire
-
-          # 2. STRUCTURE PROPRE
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/layout
 
-          # 3. SETTINGS ET GRADLE (Format compatible Gradle 8+)
+          # 1. SETTINGS.GRADLE (Obligatoire pour Gradle 9+)
           cat <<EOF > settings.gradle
-          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories { google(); mavenCentral() }
@@ -40,10 +38,14 @@ jobs:
           include ':app'
           EOF
 
+          # 2. BUILD.GRADLE RACINE (Syntaxe Plugins uniquement)
           cat <<EOF > build.gradle
-          plugins { id 'com.android.application' version '8.1.1' apply false }
+          plugins {
+              id 'com.android.application' version '8.2.0' apply false
+          }
           EOF
 
+          # 3. APP/BUILD.GRADLE
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
@@ -63,7 +65,7 @@ jobs:
           }
           EOF
 
-          # 4. LE CODE JAVA (On le crée nous-même pour être sûr qu'il compile)
+          # 4. JAVA & MANIFEST
           cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
           package com.example.bitcoinhunt;
           import android.os.Bundle;
@@ -72,12 +74,10 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  setContentView(android.R.layout.simple_list_item_1);
               }
           }
           EOF
 
-          # 5. LE MANIFEST (Simple et carré)
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
@@ -92,11 +92,10 @@ jobs:
           </manifest>
           EOF
 
-          # 6. BUILD AVEC LE GRADLE SYSTÈME
-          gradle assembleDebug
+          gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BitcoinHunt-Success-APK
+          name: BitcoinHunt-APK
           path: app/build/outputs/apk/debug/*.apk
