@@ -19,17 +19,15 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Clean and Generate Build Files
+      - name: Build Radical
         run: |
           rm -rf *
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
 
-          # 1. SETTINGS.GRADLE (Obligatoire pour Gradle 9+)
+          # 1. SETTINGS AVEC RÉSOLUTIONS DE DÉPENDANCES
           cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories { google(); mavenCentral() }
@@ -38,46 +36,32 @@ jobs:
           include ':app'
           EOF
 
-          # 2. BUILD.GRADLE RACINE (Syntaxe Plugins uniquement)
+          # 2. BUILD.GRADLE (Plugin AGP 8.3.0 compatible Gradle 9)
           cat <<EOF > build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.0' apply false
-          }
+          plugins { id 'com.android.application' version '8.3.0' apply false }
           EOF
 
-          # 3. APP/BUILD.GRADLE
+          # 3. APP/BUILD.GRADLE (On monte à compileSdk 35 pour valider les AAR)
           cat <<EOF > app/build.gradle
           plugins { id 'com.android.application' }
           android {
               namespace 'com.example.bitcoinhunt'
-              compileSdk 34
+              compileSdk 35
               defaultConfig {
                   applicationId "com.example.bitcoinhunt"
-                  minSdk 21
-                  targetSdk 34
+                  minSdk 26
+                  targetSdk 35
                   versionCode 1
                   versionName "1.0"
               }
           }
           dependencies {
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'com.google.android.material:material:1.9.0'
+              implementation 'androidx.appcompat:appcompat:1.7.0'
+              implementation 'com.google.android.material:material:1.12.0'
           }
           EOF
 
-          # 4. JAVA & MANIFEST
-          cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
-          package com.example.bitcoinhunt;
-          import android.os.Bundle;
-          import androidx.appcompat.app.AppCompatActivity;
-          public class MainActivity extends AppCompatActivity {
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-              }
-          }
-          EOF
-
+          # 4. MANIFEST ET JAVA
           cat <<EOF > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
@@ -92,7 +76,20 @@ jobs:
           </manifest>
           EOF
 
-          gradle assembleDebug --no-daemon
+          cat <<EOF > app/src/main/java/com/example/bitcoinhunt/MainActivity.java
+          package com.example.bitcoinhunt;
+          import android.os.Bundle;
+          import androidx.appcompat.app.AppCompatActivity;
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          EOF
+
+          # 5. NETTOYAGE CACHE AVANT BUILD
+          gradle clean assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
