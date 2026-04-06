@@ -1,4 +1,4 @@
-name: Build Android APK - FINAL FIX 2026
+name: Build Android APK - TOTAL CLEAN
 
 on:
   push:
@@ -19,20 +19,19 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Rebuild Project for Gradle 9
+      - name: Hard Reset & Success Build
         run: |
-          # 1. Nettoyage radical
-          rm -rf .gradle app/build build settings.gradle build.gradle app/build.gradle
+          # 1. Nettoyage de tout ce qui peut gêner
+          rm -rf .gradle app/build build settings.gradle build.gradle app/build.gradle app/src/main/AndroidManifest.xml
 
-          # 2. Structure
+          # 2. Structure propre
           mkdir -p app/src/main/java/com/example/bitcoinhunt
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
 
-          # 3. Config compatible Gradle 9.4.1 + AGP 8.3+
+          # 3. Configuration Gradle 9.4.1 (Standard 2026)
           cat <<EOF > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
               repositories { google(); mavenCentral() }
@@ -42,10 +41,7 @@ jobs:
           EOF
 
           cat <<EOF > build.gradle
-          plugins {
-              id 'com.android.application' version '8.3.0' apply false
-              id 'com.android.library' version '8.3.0' apply false
-          }
+          plugins { id 'com.android.application' version '8.3.0' apply false }
           EOF
 
           cat <<EOF > app/build.gradle
@@ -60,9 +56,6 @@ jobs:
                   versionCode 1
                   versionName "1.0"
               }
-              buildFeatures {
-                  buildConfig = true
-              }
           }
           dependencies {
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -70,11 +63,18 @@ jobs:
           }
           EOF
 
-          # 4. Manifest de secours (indispensable)
+          # 4. MANIFEST CORRIGÉ (L'ERREUR VENAIT D'ICI)
           cat <<EOF > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://android.com">
-              <application android:label="Bitcoin Hunt">
-                  <activity android:name=".MainActivity" android:exported="true">
+              <application
+                  android:allowBackup="true"
+                  android:label="Bitcoin Hunt"
+                  android:supportsRtl="true"
+                  android:theme="@style/Theme.AppCompat.Light">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
                           <category android:name="android.intent.category.LAUNCHER" />
@@ -84,11 +84,11 @@ jobs:
           </manifest>
           EOF
 
-          # 5. Build avec le Gradle 9.4.1 du système
+          # 5. Build final
           gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: BitcoinHunt-Success
+          name: BitcoinHunt-Final
           path: app/build/outputs/apk/debug/*.apk
